@@ -13,7 +13,7 @@ Stream Joins using Cloud PubSub and SQL over Cloud Dataflow engine in BigQuery
 To run `xstreams` locally execute:
 
 ```shell
-go run *.go --freq 2s
+go run *.go --freq 3s
 ```
 
 The `xstreams` also supports the following optional runtime configuration parameters:
