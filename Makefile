@@ -40,3 +40,15 @@ vm:
 
 vmless:
 	gcloud compute instances delete xstreams --zone=us-central1-c
+
+catalog:
+	gcloud beta data-catalog entries update \
+		--lookup-entry='pubsub.topic.cloudylabs.eventmakertemp' \
+		--schema-from-file=schema.yaml
+
+	gcloud beta data-catalog entries update \
+		--lookup-entry='pubsub.topic.cloudylabs.eventmakervibe' \
+		--schema-from-file=schema.yaml
+
+	gcloud beta data-catalog entries lookup 'pubsub.topic.cloudylabs.eventmakertemp'
+	gcloud beta data-catalog entries lookup 'pubsub.topic.cloudylabs.eventmakervibe'

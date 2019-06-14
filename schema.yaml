@@ -1,0 +1,33 @@
+- column: event_timestamp
+  description: Pub/Sub event timestamp
+  mode: REQUIRED
+  type: TIMESTAMP
+- column: attributes
+  description: Pub/Sub message attributes
+  mode: NULLABLE
+  type: MAP<STRING,STRING>
+- column: payload
+  description: Pub/Sub message payload
+  mode: NULLABLE
+  type: STRUCT
+  subcolumns:
+    - column: source_id
+      description: Global unique ID of the IoT event source
+      mode: REQUIRED
+      type: STRING
+    - column: event_id
+      description: Globally unique ID of this event
+      mode: REQUIRED
+      type: STRING
+    - column: event_time
+      description: Event epoch time (Unix of event_time UTC)
+      mode: REQUIRED
+      type: INT32
+    - column: metric
+      description: Event metric (what are measuring?)
+      mode: REQUIRED
+      type: STRING
+    - column: value
+      description: Metric value (what did that measure at?)
+      mode: REQUIRED
+      type: FLOAT

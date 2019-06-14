@@ -11,6 +11,7 @@ import (
 var (
 	logger    = log.New(os.Stdout, "[EM] ", 0)
 	projectID = flag.String("project", os.Getenv("GCP_PROJECT"), "GCP Project ID")
+	deviceID  = flag.String("device", "device1", "ID of this deivce [device1]")
 	tempTopic = flag.String("temp-topic", "eventmakertemp", "Temp topic name [eventmakertemp]")
 	vibeTopic = flag.String("vibe-topic", "eventmakervibe", "Vibration topic name [eventmakervibe]")
 	eventFreq = flag.String("freq", "5s", "Event frequency [5s]")
@@ -37,10 +38,10 @@ func main() {
 
 	for {
 		//temp
-		pub(ctx, qt, makeEvent("temp-sensor1", "temperature", 15.0, 39.9))
+		pub(ctx, qt, makeEvent(*deviceID, "temperature", 15.0, 39.9))
 
 		// vibe
-		pub(ctx, vf, makeEvent("vibe-sensor1", "vibration", 0.001, 19.99))
+		pub(ctx, vf, makeEvent(*deviceID, "vibration", 0.001, 19.99))
 
 		time.Sleep(freq)
 	}
