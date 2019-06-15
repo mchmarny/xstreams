@@ -63,13 +63,48 @@ gcloud logging read "resource.type=gce_instance \
 
 ## Process Events
 
+
+### Raw Events
+
+First are also going to load the raw event data from the two PubSub topics into single BigQuery table. Let's create the BigQuery dataset and table:
+
+```shell
+bq mk xstreams
+bq query --use_legacy_sql=false "
+CREATE OR REPLACE TABLE xstreams.raw_events (
+  source_id STRING NOT NULL,
+  event_id STRING NOT NULL,
+  event_time INT64 NOT NULL,
+  metric STRING NOT NULL,
+  value FLOAT64 NOT NULL
+)"
+```
+
+Once the table is created, we can create Dataflow job to drain the payloads from the `eventmakertemp` and `eventmakervibe` topics to `raw_events` table in BigQuery
+
+
+```shell
+PROJECT=$(gcloud config get-value project)
+gcloud dataflow jobs run xstreams-raw-tepm-events \
+  --gcs-location gs://dataflow-templates/latest/PubSub_to_BigQuery \
+  --parameters "inputTopic=projects/${PROJECT}/topics/eventmakertemp,outputTableSpec=${PROJECT}:xstreams.raw_events"
+gcloud dataflow jobs run xstreams-raw-vibe-events \
+  --gcs-location gs://dataflow-templates/latest/PubSub_to_BigQuery \
+  --parameters "inputTopic=projects/${PROJECT}/topics/eventmakervibe,outputTableSpec=${PROJECT}:xstreams.raw_events"
+```
+
+Cloud Dataflow will take a couple of minutes to create the necessary resources. When done, you will see data in the `kadvice.raw_events` table in BigQuery.
+
+
+### Windowing
+
 One of the most common operations in unbounded event stream processing is grouping events by slicing them into period window based on the timestamp of each event. The simplest form of windowing is tumbling which uses consistent duration to group event into non-overlapping time interval. Since our synthetic events have only a one event time, the `tumbling window` is a natural fit.
 
 > You can read more about Windowing [here](https://cloud.google.com/dataflow/docs/guides/sql/streaming-pipeline-basics)
 
 In the Alpha release of Cloud Dataflow SQL in BigQuery joining of multiple unbounded event streams doesn't seem to be yet supported so we are going to create two separate jobs for `temperature` and `vibration`
 
-### Temperature
+#### Temperature
 
 Execute the following query with the Dataflow engine and save the results to `xstreams.temp_tumble_30`.
 
@@ -92,7 +127,7 @@ SELECT
    TUMBLE(t.event_timestamp, "INTERVAL 30 SECOND")
 ```
 
-### Vibration
+#### Vibration
 
 Similarly execute the following with the Dataflow engine and save the results to `xstreams.vibe_tumble_30`.
 
