@@ -66,7 +66,7 @@ gcloud logging read "resource.type=gce_instance \
 
 ### Raw Events
 
-First are also going to load the raw event data from the two PubSub topics into single BigQuery table. Let's create the BigQuery dataset and table:
+First we are going to load the raw event data from the two PubSub topics into single BigQuery table. Let's create the BigQuery dataset and table:
 
 ```shell
 bq mk xstreams
@@ -85,24 +85,25 @@ Once the table is created, we can create Dataflow job to drain the payloads from
 
 ```shell
 PROJECT=$(gcloud config get-value project)
+
 gcloud dataflow jobs run xstreams-raw-tepm-events \
   --gcs-location gs://dataflow-templates/latest/PubSub_to_BigQuery \
   --parameters "inputTopic=projects/${PROJECT}/topics/eventmakertemp,outputTableSpec=${PROJECT}:xstreams.raw_events"
+
 gcloud dataflow jobs run xstreams-raw-vibe-events \
   --gcs-location gs://dataflow-templates/latest/PubSub_to_BigQuery \
   --parameters "inputTopic=projects/${PROJECT}/topics/eventmakervibe,outputTableSpec=${PROJECT}:xstreams.raw_events"
 ```
 
-Cloud Dataflow will take a couple of minutes to create the necessary resources. When done, you will see data in the `kadvice.raw_events` table in BigQuery.
-
+Dataflow will take a couple of minutes to create the necessary resources. When done, you will see data in the `kadvice.raw_events` table in BigQuery.
 
 ### Windowing
 
-One of the most common operations in unbounded event stream processing is grouping events by slicing them into period window based on the timestamp of each event. The simplest form of windowing is tumbling which uses consistent duration to group event into non-overlapping time interval. Since our synthetic events have only a one event time, the `tumbling window` is a natural fit.
+One of the most common operations in unbounded event stream processing is grouping events by slicing them into period window based on the timestamp of each event. The simplest form of windowing is tumbling which uses consistent duration to group events into non-overlapping time interval. Since our synthetic events have only a one event time, the `tumbling window` is a natural fit.
 
 > You can read more about Windowing [here](https://cloud.google.com/dataflow/docs/guides/sql/streaming-pipeline-basics)
 
-In the Alpha release of Cloud Dataflow SQL in BigQuery joining of multiple unbounded event streams doesn't seem to be yet supported so we are going to create two separate jobs for `temperature` and `vibration`
+In the Alpha release of Cloud Dataflow SQL in BigQuery joining of multiple unbounded event streams doesn't seem to be yet supported. So, we are going to create two separate jobs: `temperature` and `vibration`.
 
 #### Temperature
 
@@ -201,6 +202,37 @@ WHERE
     FROM xstreams.temp_tumble_30
     WHERE period_start > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 10 MINUTE)
   )
+```
+
+And finally to identify outliers for either temperature of vibration for a given period within last 5 minutes you can run this query:
+
+```sql
+SELECT
+  TIMESTAMP_SECONDS(e.event_time) as event_time,
+  e.source_id,
+  e.metric,
+  e.value,
+  CASE
+    WHEN e.metric = 'temperature' THEN AVG(t.avg_temp_period_val)
+    WHEN e.metric = 'vibration' THEN AVG(v.avg_vibe_period_val)
+    ELSE 0
+  END as avg_period_value,
+  CASE
+    WHEN e.metric = 'temperature' THEN e.value - AVG(t.avg_temp_period_val)
+    WHEN e.metric = 'vibration' THEN e.value - AVG(v.avg_vibe_period_val)
+    ELSE 0
+  END as avg_period_delta
+FROM xstreams.raw_events e
+INNER JOIN xstreams.temp_tumble_30 t ON e.source_id = t.source_id AND e.event_time BETWEEN t.min_temp_event_time AND t.max_temp_event_time
+INNER JOIN xstreams.vibe_tumble_30 v ON e.source_id = v.source_id AND e.event_time BETWEEN v.min_vibe_event_time AND v.max_vibe_event_time
+WHERE
+  TIMESTAMP_SECONDS(e.event_time) > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 5 MINUTE)
+GROUP BY
+  e.event_time,
+  e.source_id,
+  e.metric,
+  e.value
+ORDER BY 1 DESC
 ```
 
 You can obviously customize each one of these or write your own, more interesting, SQL queries.
