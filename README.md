@@ -227,8 +227,10 @@ SELECT
     ELSE 0
   END as avg_period_delta
 FROM xstreams.raw_events e
-INNER JOIN xstreams.temp_tumble_30 t ON e.source_id = t.source_id AND e.event_time BETWEEN t.min_temp_event_time AND t.max_temp_event_time
-INNER JOIN xstreams.vibe_tumble_30 v ON e.source_id = v.source_id AND e.event_time BETWEEN v.min_vibe_event_time AND v.max_vibe_event_time
+INNER JOIN xstreams.temp_tumble_30 t ON e.source_id = t.source_id
+  AND e.event_time BETWEEN t.min_temp_event_time AND t.max_temp_event_time
+INNER JOIN xstreams.vibe_tumble_30 v ON e.source_id = v.source_id
+  AND e.event_time BETWEEN v.min_vibe_event_time AND v.max_vibe_event_time
 WHERE
   TIMESTAMP_SECONDS(e.event_time) > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 5 MINUTE)
 GROUP BY
