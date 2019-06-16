@@ -241,6 +241,44 @@ ORDER BY 1 DESC
 
 You can obviously customize each one of these or write your own, more interesting, SQL queries.
 
+## Visualization
+
+To use show the temperature and vibrations time-series data in BigQuery you will need to install the plugin. To do so, follow one of the ways outlined [here](https://github.com/doitintl/bigquery-grafana/blob/master/INSTALL.md). After that, you can follow the data source configuration steps outlined [here](https://github.com/doitintl/bigquery-grafana).
+
+When creating query in Grafana, you can either follow the wizard or just paste the following select statements into each SQL query editor window
+
+Temperature Query
+
+```sql
+#standardSQL
+SELECT
+ period_start AS time,
+  source_id AS metric,
+  avg_temp_period_val
+FROM `cloudylabs.xstreams.temp_tumble_30`
+WHERE
+  $__timeFilter(period_start)
+ORDER BY 1,2
+```
+
+Vibration Query
+
+```sql
+#standardSQL
+SELECT
+ period_start AS time,
+  source_id AS metric,
+  avg_vibe_period_val
+FROM `cloudylabs.xstreams.vibe_tumble_30`
+WHERE
+  $__timeFilter(period_start)
+ORDER BY 1,2
+```
+
+Then save by clicking the save button at the top right side of the screen.
+
+![alt text](image/grafana-query.png "Grafana Query")
+
 ## Cost
 
 There is a pretty generous [free tier](https://cloud.google.com/free/) on GCP
