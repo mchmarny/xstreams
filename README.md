@@ -182,7 +182,28 @@ INNER JOIN xstreams.temp_tumble_30 t ON
 ORDER BY v.period_start DESC
 ```
 
-You can obviously customize this or write your own, more interesting, SQL queries.
+Similarly, to identify temperatures in current period that are above the 10 minute average:
+
+```sql
+SELECT
+  TIMESTAMP_SECONDS(event_time) as event_time,
+  source_id,
+  value
+FROM xstreams.raw_events
+WHERE
+  metric = 'temperature'
+  AND TIMESTAMP_SECONDS(event_time) > (
+    SELECT MAX(period_start)
+    FROM xstreams.temp_tumble_30
+  )
+  AND value > (
+    SELECT AVG(avg_temp_period_val)
+    FROM xstreams.temp_tumble_30
+    WHERE period_start > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 10 MINUTE)
+  )
+```
+
+You can obviously customize each one of these or write your own, more interesting, SQL queries.
 
 ## Cost
 
@@ -206,6 +227,15 @@ To delete the two topics created by `xstreams`
 gcloud pubsub topics delete eventmakertemp
 gcloud pubsub topics delete eventmakervibe
 ```
+
+To delete BigQuery dataset created by `xstreams`
+
+
+```shell
+bq rm -r -f xstreams
+```
+
+To stop all the Dataflow jobs created in this demo (unless you named them explicitly), you will have to go to the Google Cloud Console and delete them manually
 
 
 ## Disclaimer
