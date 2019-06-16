@@ -8,6 +8,10 @@ This demo will cover:
 * [Process Events](#process-events) how to process the two event streams and use Cloud Dataflow windowing function to join the two unbounded event streams
 * [Analyze Data](#analyze-data) how to use BigQuery SQL to analyze the resulting event data
 
+Additionally, we will visualize the time-series data using the new data source plugin for BigQuery
+
+![alt text](image/grafana.png "Grafana Chart")
+
 ## Generate Events
 
 The included `xstreams` data generation utility publishes mocked up events onto PubSub topic in form of a JSON payload for both temperature and friction:
